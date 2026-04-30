@@ -2,35 +2,16 @@
 
 ## Active Tasks
 
-### 0. Backend — Location search route (`GET /weather/locations`)
-
-**Goal:** Return geocoded location candidates so the frontend can disambiguate city names.
-
-**Acceptance criteria:**
-- [ ] Accepts `q` query param; returns 400 if missing/empty
-- [ ] Calls OpenWeatherMap Geocoding API via raw HTTP (`geo/1.0/direct?q=...&limit=5`)
-- [ ] Returns array of `{ name, state, country, lat, lon }` (state omitted when not available)
-- [ ] Returns empty array when no matches found
-- [ ] Returns 502 when upstream API fails
-- [ ] `WeatherService` unit test covers: results found, no results, upstream error
-
-**Edge cases:**
-- Query with no matches → empty array (not 404)
-- Upstream returns non-200
-- `state` field absent for non-US results
-
----
-
 ### 1. Backend — Weather proxy route (`GET /weather/current`)
 
 **Goal:** Return normalized current weather for a given location.
 
 **Acceptance criteria:**
-- [ ] Accepts `location` query param; returns 400 if missing
-- [ ] Calls external weather API via raw HTTP (no SDK)
-- [ ] Returns a consistent JSON shape (define once the weather API response is known)
-- [ ] Returns 502 with message when upstream API fails
-- [ ] `WeatherService` unit test covers success and error paths
+- [x] Accepts `location` query param; returns 400 if missing
+- [x] Calls external weather API via raw HTTP (no SDK)
+- [x] Returns a consistent JSON shape (define once the weather API response is known)
+- [x] Returns 502 with message when upstream API fails
+- [x] `WeatherService` unit test covers success and error paths
 
 **Edge cases:**
 - Empty string location
@@ -44,10 +25,10 @@
 **Goal:** Return multi-day forecast for a location.
 
 **Acceptance criteria:**
-- [ ] Accepts `location` query param; returns 400 if missing
-- [ ] Calls external weather API via raw HTTP (no SDK)
-- [ ] Returns a consistent JSON shape (define once the weather API response is known)
-- [ ] Returns 502 with message when upstream API fails
+- [x] Accepts `location` query param; returns 400 if missing
+- [x] Calls external weather API via raw HTTP (no SDK)
+- [x] Returns a consistent JSON shape (define once the weather API response is known)
+- [x] Returns 502 with message when upstream API fails
 
 ---
 
@@ -103,6 +84,14 @@
 
 ---
 
+## Side Quests
+- [ ] Improve error handling
+- [ ] Implement Swagger documentation
+
 ## Completed Tasks
 
 ### 0. Backend — Location search route (`GET /weather/locations`) ✓
+
+### 1. Backend — Weather proxy route (`GET /weather/current`) ✓
+
+### 2. Backend — Forecast route (`GET /weather/forecast`) ✓

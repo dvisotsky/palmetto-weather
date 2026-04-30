@@ -53,7 +53,7 @@
   "windSpeed": 12,
   "windUnit": "mph",
   "feelsLike": 70,
-  "summary": "A pleasant afternoon with light winds and partial cloud cover."
+  "description": "few clouds"
 }
 ```
 
