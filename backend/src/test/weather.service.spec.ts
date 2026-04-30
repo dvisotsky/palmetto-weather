@@ -93,13 +93,9 @@ describe('WeatherService', () => {
     ];
 
     const mockWeatherResponse = {
-      current: {
-        temp: 72,
-        feels_like: 70,
-        humidity: 65,
-        wind_speed: 12,
-        weather: [{ main: 'Clouds', description: 'few clouds' }],
-      },
+      main: { temp: 72, feels_like: 70, humidity: 65 },
+      wind: { speed: 12 },
+      weather: [{ main: 'Clouds', description: 'few clouds' }],
     };
 
     it('throws BadRequestException when location is empty', async () => {
@@ -127,7 +123,7 @@ describe('WeatherService', () => {
         windUnit: 'mph',
         condition: 'Clouds',
       });
-      expect(result.summary).toBeTruthy();
+      expect(result.description).toBeTruthy();
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
@@ -146,6 +142,15 @@ describe('WeatherService', () => {
         windUnit: 'mph',
       });
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws BadRequestException when geocoding returns no results', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+      }));
+
+      await expect(service.getCurrent('xyznotaplace')).rejects.toThrow(BadRequestException);
     });
 
     it('throws BadGatewayException when geocoding API returns non-200', async () => {
@@ -171,8 +176,90 @@ describe('WeatherService', () => {
   });
 
   describe('getForecast', () => {
+    const mockGeoResponse = [
+      { name: 'Charleston', state: 'South Carolina', country: 'US', lat: 32.7765, lon: -79.9311 },
+    ];
+
+    const mockForecastResponse = {
+      list: [
+        { dt_txt: '2026-05-01 09:00:00', main: { temp_max: 75, temp_min: 60 }, weather: [{ main: 'Clouds' }], pop: 0.1 },
+        { dt_txt: '2026-05-01 12:00:00', main: { temp_max: 78, temp_min: 62 }, weather: [{ main: 'Sunny' }], pop: 0.2 },
+        { dt_txt: '2026-05-01 15:00:00', main: { temp_max: 80, temp_min: 63 }, weather: [{ main: 'Clouds' }], pop: 0.3 },
+        { dt_txt: '2026-05-02 09:00:00', main: { temp_max: 70, temp_min: 55 }, weather: [{ main: 'Rain' }], pop: 0.8 },
+        { dt_txt: '2026-05-02 12:00:00', main: { temp_max: 72, temp_min: 57 }, weather: [{ main: 'Rain' }], pop: 0.6 },
+      ],
+    };
+
     it('throws BadRequestException when location is empty', async () => {
       await expect(service.getForecast('')).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when location is whitespace', async () => {
+      await expect(service.getForecast('   ')).rejects.toThrow(BadRequestException);
+    });
+
+    it('geocodes city name and returns grouped daily forecast', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockGeoResponse) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockForecastResponse) });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await service.getForecast('Charleston');
+
+      expect(result.location).toBe('Charleston, South Carolina');
+      expect(result.forecast).toHaveLength(2);
+      expect(result.forecast[0]).toEqual({
+        date: '2026-05-01',
+        high: 80,
+        low: 60,
+        condition: 'Sunny',
+        precipitationChance: 30,
+      });
+      expect(result.forecast[1]).toMatchObject({
+        date: '2026-05-02',
+        high: 72,
+        low: 55,
+        condition: 'Rain',
+        precipitationChance: 80,
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('skips geocoding when location is lat,lon', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockForecastResponse) });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await service.getForecast('32.7765,-79.9311');
+
+      expect(result.forecast).toHaveLength(2);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('limits results to requested days count', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockGeoResponse) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockForecastResponse) });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await service.getForecast('Charleston', 1);
+
+      expect(result.forecast).toHaveLength(1);
+    });
+
+    it('throws BadGatewayException when forecast API returns non-200', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockGeoResponse) })
+        .mockResolvedValueOnce({ ok: false, status: 500 });
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(service.getForecast('Charleston')).rejects.toThrow(BadGatewayException);
+    });
+
+    it('throws BadGatewayException on network error', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network timeout')));
+
+      await expect(service.getForecast('Charleston')).rejects.toThrow(BadGatewayException);
     });
   });
 });
