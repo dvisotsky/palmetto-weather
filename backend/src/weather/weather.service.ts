@@ -1,18 +1,26 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { GeoLocation, CurrentWeatherResponse, ForecastDay, ForecastResponse } from '@/types/weather.types';
-import { throwUpstreamError } from '@/utils/errors';
+import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  GeoLocation,
+  CurrentWeatherResponse,
+  ForecastDay,
+  ForecastResponse,
+} from "@/types/weather.types";
+import { throwUpstreamError } from "@/utils/errors";
 
-const GEO_API = 'https://api.openweathermap.org/geo/1.0/direct';
-const REVERSE_GEO_API = 'https://api.openweathermap.org/geo/1.0/reverse';
-const WEATHER_API = 'https://api.openweathermap.org/data/2.5/weather';
-const FORECAST_API = 'https://api.openweathermap.org/data/2.5/forecast';
-const API_KEY = process.env.OPENWEATHER_API_KEY ?? '';
+const GEO_API = "https://api.openweathermap.org/geo/1.0/direct";
+const REVERSE_GEO_API = "https://api.openweathermap.org/geo/1.0/reverse";
+const WEATHER_API = "https://api.openweathermap.org/data/2.5/weather";
+const FORECAST_API = "https://api.openweathermap.org/data/2.5/forecast";
+const API_KEY = process.env.OPENWEATHER_API_KEY ?? "";
 
 const LAT_LON_RE = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
 
 @Injectable()
 export class WeatherService {
-  private async getGeoLocations(q: string, limit: number): Promise<GeoLocation[]> {
+  private async getGeoLocations(
+    q: string,
+    limit: number,
+  ): Promise<GeoLocation[]> {
     const url = `${GEO_API}?q=${encodeURIComponent(q)}&limit=${limit}&appid=${API_KEY}`;
     try {
       const res = await fetch(url);
@@ -30,11 +38,15 @@ export class WeatherService {
     }
   }
 
-  private async reverseGeocode(lat: number, lon: number): Promise<GeoLocation | null> {
+  private async reverseGeocode(
+    lat: number,
+    lon: number,
+  ): Promise<GeoLocation | null> {
     const url = `${REVERSE_GEO_API}?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`;
     try {
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`Reverse geocoding API error: ${res.status}`);
+      if (!res.ok)
+        throw new Error(`Reverse geocoding API error: ${res.status}`);
       const data = (await res.json()) as Record<string, unknown>[];
       if (!data.length) return null;
       const item = data[0];
@@ -52,14 +64,14 @@ export class WeatherService {
 
   async getLocations(q: string): Promise<GeoLocation[]> {
     if (!q?.trim()) {
-      throw new BadRequestException('q is required');
+      throw new BadRequestException("q is required");
     }
     return this.getGeoLocations(q.trim(), 5);
   }
 
   async getCurrent(location: string): Promise<CurrentWeatherResponse> {
     if (!location?.trim()) {
-      throw new BadRequestException('location is required');
+      throw new BadRequestException("location is required");
     }
 
     const trimmedLocation = location.trim();
@@ -67,25 +79,29 @@ export class WeatherService {
     let lon: number;
     let city: string;
     let state: string;
+    let country: string;
 
     try {
       if (LAT_LON_RE.test(trimmedLocation)) {
-        [lat, lon] = trimmedLocation.split(',').map(Number);
+        [lat, lon] = trimmedLocation.split(",").map(Number);
         const geo = await this.reverseGeocode(lat, lon);
-        city = geo?.name ?? '';
-        state = geo?.state ?? '';
+        city = geo?.name ?? "";
+        state = geo?.state ?? "";
+        country = geo?.country ?? "";
       } else {
         const [geo] = await this.getGeoLocations(trimmedLocation, 1);
-        if (!geo) throw new BadRequestException('Location not found');
+        if (!geo) throw new BadRequestException("Location not found");
         lat = geo.lat;
         lon = geo.lon;
         city = geo.name;
-        state = geo.state ?? '';
+        state = geo.state ?? "";
+        country = geo.country;
       }
 
       const weatherUrl = `${WEATHER_API}?lat=${lat}&lon=${lon}&units=imperial&appid=${API_KEY}`;
       const weatherRes = await fetch(weatherUrl);
-      if (!weatherRes.ok) throw new Error(`Weather API error: ${weatherRes.status}`);
+      if (!weatherRes.ok)
+        throw new Error(`Weather API error: ${weatherRes.status}`);
 
       const data = (await weatherRes.json()) as {
         main: { temp: number; feels_like: number; humidity: number };
@@ -97,12 +113,13 @@ export class WeatherService {
       return {
         city,
         state,
+        country,
         coordinates: { lat, lon },
-        temperature: { value: Math.round(data.main.temp), unit: 'F' },
+        temperature: { value: Math.round(data.main.temp), unit: "F" },
         feelsLike: Math.round(data.main.feels_like),
         humidity: data.main.humidity,
         windSpeed: Math.round(data.wind.speed),
-        windUnit: 'mph',
+        windUnit: "mph",
         condition: weather.main,
         description: weather.description,
       };
@@ -111,9 +128,12 @@ export class WeatherService {
     }
   }
 
-  async getForecast(location: string, days: number = 5): Promise<ForecastResponse> {
+  async getForecast(
+    location: string,
+    days: number = 5,
+  ): Promise<ForecastResponse> {
     if (!location?.trim()) {
-      throw new BadRequestException('location is required');
+      throw new BadRequestException("location is required");
     }
 
     const clampedDays = Math.min(Math.max(days, 1), 7);
@@ -122,20 +142,23 @@ export class WeatherService {
     let lon: number;
     let city: string;
     let state: string;
+    let country: string;
 
     try {
       if (LAT_LON_RE.test(trimmedLocation)) {
-        [lat, lon] = trimmedLocation.split(',').map(Number);
+        [lat, lon] = trimmedLocation.split(",").map(Number);
         const geo = await this.reverseGeocode(lat, lon);
-        city = geo?.name ?? '';
-        state = geo?.state ?? '';
+        city = geo?.name ?? "";
+        state = geo?.state ?? "";
+        country = geo?.country ?? "";
       } else {
         const [geo] = await this.getGeoLocations(trimmedLocation, 1);
-        if (!geo) throw new BadRequestException('Location not found');
+        if (!geo) throw new BadRequestException("Location not found");
         lat = geo.lat;
         lon = geo.lon;
         city = geo.name;
-        state = geo.state ?? '';
+        state = geo.state ?? "";
+        country = geo.country;
       }
 
       const url = `${FORECAST_API}?lat=${lat}&lon=${lon}&units=imperial&appid=${API_KEY}`;
@@ -153,7 +176,7 @@ export class WeatherService {
 
       const byDate = new Map<string, typeof data.list>();
       for (const slot of data.list) {
-        const date = slot.dt_txt.split(' ')[0];
+        const date = slot.dt_txt.split(" ")[0];
         if (!byDate.has(date)) byDate.set(date, []);
         byDate.get(date)!.push(slot);
       }
@@ -164,11 +187,15 @@ export class WeatherService {
           date,
           high: Math.round(Math.max(...slots.map((s) => s.main.temp_max))),
           low: Math.round(Math.min(...slots.map((s) => s.main.temp_min))),
-          condition: (slots.find((s) => s.dt_txt.includes('12:00:00')) ?? slots[0]).weather[0].main,
-          precipitationChance: Math.round(Math.max(...slots.map((s) => s.pop)) * 100),
+          condition: (
+            slots.find((s) => s.dt_txt.includes("12:00:00")) ?? slots[0]
+          ).weather[0].main,
+          precipitationChance: Math.round(
+            Math.max(...slots.map((s) => s.pop)) * 100,
+          ),
         }));
 
-      return { city, state, coordinates: { lat, lon }, forecast };
+      return { city, state, country, coordinates: { lat, lon }, forecast };
     } catch (err) {
       throwUpstreamError(err);
     }

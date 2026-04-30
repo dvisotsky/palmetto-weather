@@ -19,6 +19,7 @@ export interface Coordinates {
 export interface CurrentWeather {
   city: string;
   state: string;
+  country: string;
   coordinates: Coordinates;
   temperature: Temperature;
   condition: string;
@@ -40,6 +41,13 @@ export interface ForecastDay {
 export interface Forecast {
   city: string;
   state: string;
+  country: string;
   coordinates: Coordinates;
   forecast: ForecastDay[];
+}
+
+export interface FavoriteLocation {
+  city: string;
+  state: string;
+  coordinates: Coordinates;
 }

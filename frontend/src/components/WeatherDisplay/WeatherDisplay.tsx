@@ -35,14 +35,25 @@ export function WeatherDisplay({
     return null;
   }
 
+  const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+
+  function getRegion() {
+    if (data?.state) return data.state;
+    if (data?.country) return regionNames.of(data?.country);
+    return "";
+  }
+  const region = getRegion();
+
   return (
     <>
       <div className="py-4 border-b-4 border-primary flex items-end gap-4">
         <h1 className="font-header font-bold text-4xl">
           {data?.city}
-          {data?.state ? "," : ""}
+          {region ? "," : ""}
         </h1>
-        <h1 className="font-header font-bold text-2xl italic">{data?.state}</h1>
+        {region && (
+          <h1 className="font-header font-bold text-2xl italic">{region}</h1>
+        )}
         {data && (
           <Button
             variant="icon"

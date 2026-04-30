@@ -117,6 +117,7 @@ describe('WeatherService', () => {
       expect(result).toMatchObject({
         city: 'Charleston',
         state: 'South Carolina',
+        country: 'US',
         temperature: { value: 72, unit: 'F' },
         feelsLike: 70,
         humidity: 65,
@@ -142,6 +143,7 @@ describe('WeatherService', () => {
       expect(result).toMatchObject({
         city: 'Charleston',
         state: 'South Carolina',
+        country: 'US',
         temperature: { value: 72, unit: 'F' },
         feelsLike: 70,
         humidity: 65,
@@ -215,6 +217,7 @@ describe('WeatherService', () => {
 
       expect(result.city).toBe('Charleston');
       expect(result.state).toBe('South Carolina');
+      expect(result.country).toBe('US');
       expect(result.forecast).toHaveLength(2);
       expect(result.forecast[0]).toEqual({
         date: '2026-05-01',
@@ -246,6 +249,7 @@ describe('WeatherService', () => {
 
       expect(result.city).toBe('Charleston');
       expect(result.state).toBe('South Carolina');
+      expect(result.country).toBe('US');
       expect(result.forecast).toHaveLength(2);
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
