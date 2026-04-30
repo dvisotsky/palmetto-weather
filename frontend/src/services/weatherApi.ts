@@ -1,9 +1,18 @@
-import { CurrentWeather, Forecast } from '@/types/weather.types';
+import { CurrentWeather, Forecast, Location } from '@/types/weather.types';
 
 const BASE_URL = '/weather';
 
 export async function fetchCurrentWeather(location: string): Promise<CurrentWeather> {
   const res = await fetch(`${BASE_URL}/current?location=${encodeURIComponent(location)}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchLocations(q: string): Promise<Location[]> {
+  const res = await fetch(`${BASE_URL}/locations?q=${encodeURIComponent(q)}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? `Request failed: ${res.status}`);
