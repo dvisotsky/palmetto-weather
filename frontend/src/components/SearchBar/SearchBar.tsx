@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { TextDropdown, DropdownOption } from "../TextDropdown/TextDropdown";
 import { Button } from "../Button/Button";
 import { fetchLocations } from "@/services/weatherApi";
+import { SpinnerIcon } from "../icons/SpinnerIcon";
+import { EnterIcon } from "../icons/EnterIcon";
 
 interface Props {
   onSearch: (location: string) => void;
@@ -68,19 +70,21 @@ export function SearchBar({ onSearch, isLoading = false }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <TextDropdown
-        value={inputValue}
-        options={options}
-        isLoading={isFetching}
-        error={validationError}
-        placeholder="Enter city or location"
-        aria-label="Location"
-        onChange={setInputValue}
-        onSelect={handleSelect}
-      />
-      <Button className="float-right mt-2" type="submit" disabled={isLoading}>
-        {isLoading ? "Loading…" : "Search"}
+    <form className="flex gap-2 items-start" onSubmit={handleSubmit}>
+      <div className="flex-1">
+        <TextDropdown
+          value={inputValue}
+          options={options}
+          isLoading={isFetching}
+          error={validationError}
+          placeholder="Enter city or location"
+          aria-label="Location"
+          onChange={setInputValue}
+          onSelect={handleSelect}
+        />
+      </div>
+      <Button type="submit" disabled={isLoading}>
+        {isLoading ? <SpinnerIcon /> : <EnterIcon />}
       </Button>
     </form>
   );
