@@ -128,21 +128,27 @@ describe('WeatherService', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    it('skips geocoding when location is lat,lon', async () => {
+    it('reverse geocodes lat,lon coordinates to populate city and state', async () => {
+      const mockReverseGeoResponse = [
+        { name: 'Charleston', state: 'South Carolina', country: 'US', lat: 32.7765, lon: -79.9311 },
+      ];
       const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockReverseGeoResponse) })
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockWeatherResponse) });
       vi.stubGlobal('fetch', fetchMock);
 
       const result = await service.getCurrent('32.7765,-79.9311');
 
       expect(result).toMatchObject({
+        city: 'Charleston',
+        state: 'South Carolina',
         temperature: { value: 72, unit: 'F' },
         feelsLike: 70,
         humidity: 65,
         windSpeed: 12,
         windUnit: 'mph',
       });
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it('throws BadRequestException when geocoding returns no results', async () => {
@@ -207,7 +213,8 @@ describe('WeatherService', () => {
 
       const result = await service.getForecast('Charleston');
 
-      expect(result.location).toBe('Charleston, South Carolina');
+      expect(result.city).toBe('Charleston');
+      expect(result.state).toBe('South Carolina');
       expect(result.forecast).toHaveLength(2);
       expect(result.forecast[0]).toEqual({
         date: '2026-05-01',
@@ -226,15 +233,21 @@ describe('WeatherService', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    it('skips geocoding when location is lat,lon', async () => {
+    it('reverse geocodes lat,lon coordinates to populate city and state', async () => {
+      const mockReverseGeoResponse = [
+        { name: 'Charleston', state: 'South Carolina', country: 'US', lat: 32.7765, lon: -79.9311 },
+      ];
       const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockReverseGeoResponse) })
         .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockForecastResponse) });
       vi.stubGlobal('fetch', fetchMock);
 
       const result = await service.getForecast('32.7765,-79.9311');
 
+      expect(result.city).toBe('Charleston');
+      expect(result.state).toBe('South Carolina');
       expect(result.forecast).toHaveLength(2);
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
     it('limits results to requested days count', async () => {
