@@ -20,7 +20,7 @@ const config: Config = {
       },
       fontFamily: {
         sans:    ['DM Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['DM Serif Display', 'ui-serif', 'Georgia', 'serif'],
+        display: ['Pacifico', 'ui-serif', 'Georgia', 'serif'],
       },
       borderRadius: {
         xl:  '1rem',
