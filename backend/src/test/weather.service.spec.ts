@@ -115,7 +115,8 @@ describe('WeatherService', () => {
       const result = await service.getCurrent('Charleston');
 
       expect(result).toMatchObject({
-        location: 'Charleston, South Carolina',
+        city: 'Charleston',
+        state: 'South Carolina',
         temperature: { value: 72, unit: 'F' },
         feelsLike: 70,
         humidity: 65,

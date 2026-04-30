@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { WeatherController } from '@/weather/weather.controller';
 import { WeatherService } from '@/weather/weather.service';
+import { CurrentWeatherResponse } from '@/types/weather.types';
 
 describe('WeatherController', () => {
   let controller: WeatherController;
@@ -39,7 +40,18 @@ describe('WeatherController', () => {
   });
 
   it('delegates getCurrent to service', async () => {
-    const mockData = { location: 'Charleston, SC' } as any;
+    const mockData: CurrentWeatherResponse = {
+      city: 'Charleston',
+      state: 'SC',
+      coordinates: { lat: 32.7765, lon: -79.9311 },
+      temperature: { value: 72, unit: 'F' },
+      condition: 'Clouds',
+      humidity: 65,
+      windSpeed: 12,
+      windUnit: 'mph',
+      feelsLike: 70,
+      description: 'few clouds',
+    };
     vi.mocked(service.getCurrent).mockResolvedValue(mockData);
 
     const result = await controller.getCurrent('Charleston, SC');

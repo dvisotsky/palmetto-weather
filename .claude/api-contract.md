@@ -43,7 +43,8 @@
 
 ```json
 {
-  "location": "Charleston, South Carolina",
+  "city": "Charleston",
+  "state": "South Carolina",
   "coordinates": { "lat": 32.7765, "lon": -79.9311 },
   "temperature": {
     "value": 72,
@@ -85,7 +86,8 @@
 
 ```json
 {
-  "location": "Charleston, South Carolina",
+  "city": "Charleston",
+  "state": "South Carolina",
   "coordinates": { "lat": 32.7765, "lon": -79.9311 },
   "forecast": [
     {

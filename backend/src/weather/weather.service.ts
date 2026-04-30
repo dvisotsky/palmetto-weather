@@ -30,14 +30,24 @@ export class WeatherService {
     }
   }
 
-  private async reverseGeocode(lat: number, lon: number): Promise<string> {
+  private async reverseGeocode(lat: number, lon: number): Promise<GeoLocation | null> {
     const url = `${REVERSE_GEO_API}?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Reverse geocoding API error: ${res.status}`);
-    const data = (await res.json()) as Record<string, unknown>[];
-    if (!data.length) return `${lat},${lon}`;
-    const item = data[0];
-    return item.state ? `${item.name as string}, ${item.state as string}` : (item.name as string);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Reverse geocoding API error: ${res.status}`);
+      const data = (await res.json()) as Record<string, unknown>[];
+      if (!data.length) return null;
+      const item = data[0];
+      return {
+        name: item.name as string,
+        ...(item.state ? { state: item.state as string } : {}),
+        country: item.country as string,
+        lat: item.lat as number,
+        lon: item.lon as number,
+      };
+    } catch (err) {
+      throwUpstreamError(err);
+    }
   }
 
   async getLocations(q: string): Promise<GeoLocation[]> {
@@ -55,18 +65,22 @@ export class WeatherService {
     const trimmedLocation = location.trim();
     let lat: number;
     let lon: number;
-    let locationLabel: string;
+    let city: string;
+    let state: string;
 
     try {
       if (LAT_LON_RE.test(trimmedLocation)) {
         [lat, lon] = trimmedLocation.split(',').map(Number);
-        locationLabel = await this.reverseGeocode(lat, lon);
+        const geo = await this.reverseGeocode(lat, lon);
+        city = geo?.name ?? '';
+        state = geo?.state ?? '';
       } else {
         const [geo] = await this.getGeoLocations(trimmedLocation, 1);
         if (!geo) throw new BadRequestException('Location not found');
         lat = geo.lat;
         lon = geo.lon;
-        locationLabel = geo.state ? `${geo.name}, ${geo.state}` : geo.name;
+        city = geo.name;
+        state = geo.state ?? '';
       }
 
       const weatherUrl = `${WEATHER_API}?lat=${lat}&lon=${lon}&units=imperial&appid=${API_KEY}`;
@@ -81,7 +95,8 @@ export class WeatherService {
       const weather = data.weather[0];
 
       return {
-        location: locationLabel,
+        city,
+        state,
         coordinates: { lat, lon },
         temperature: { value: Math.round(data.main.temp), unit: 'F' },
         feelsLike: Math.round(data.main.feels_like),
@@ -105,18 +120,22 @@ export class WeatherService {
     const trimmedLocation = location.trim();
     let lat: number;
     let lon: number;
-    let locationLabel: string;
+    let city: string;
+    let state: string;
 
     try {
       if (LAT_LON_RE.test(trimmedLocation)) {
         [lat, lon] = trimmedLocation.split(',').map(Number);
-        locationLabel = await this.reverseGeocode(lat, lon);
+        const geo = await this.reverseGeocode(lat, lon);
+        city = geo?.name ?? '';
+        state = geo?.state ?? '';
       } else {
         const [geo] = await this.getGeoLocations(trimmedLocation, 1);
         if (!geo) throw new BadRequestException('Location not found');
         lat = geo.lat;
         lon = geo.lon;
-        locationLabel = geo.state ? `${geo.name}, ${geo.state}` : geo.name;
+        city = geo.name;
+        state = geo.state ?? '';
       }
 
       const url = `${FORECAST_API}?lat=${lat}&lon=${lon}&units=imperial&appid=${API_KEY}`;
@@ -149,7 +168,7 @@ export class WeatherService {
           precipitationChance: Math.round(Math.max(...slots.map((s) => s.pop)) * 100),
         }));
 
-      return { location: locationLabel, coordinates: { lat, lon }, forecast };
+      return { city, state, coordinates: { lat, lon }, forecast };
     } catch (err) {
       throwUpstreamError(err);
     }

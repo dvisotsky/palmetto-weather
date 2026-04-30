@@ -21,7 +21,8 @@ export function WeatherDisplay({ data, isLoading, error }: Props) {
 
   return (
     <section aria-label="Current weather">
-      <h1 className="font-header font-bold text-3xl">{data.location}</h1>
+        <h1 className="font-header font-bold text-4xl">{data.city}</h1>
+        <h1 className="font-header font-bold text-xl">{data.state}</h1>
       <p>
         {data.temperature.value}°{data.temperature.unit}
       </p>
