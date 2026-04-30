@@ -4,19 +4,49 @@ import { Button } from "../Button/Button";
 import { fetchLocations } from "@/services/weatherApi";
 import { SpinnerIcon } from "../icons/SpinnerIcon";
 import { EnterIcon } from "../icons/EnterIcon";
+import { useFavorites } from "@/hooks/useFavorites";
 
 interface Props {
   onSearch: (location: string) => void;
   isLoading?: boolean;
 }
 
+const DEFAULT_COORDS = "64.145981,-21.9422367";
+
 export function SearchBar({ onSearch, isLoading = false }: Props) {
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<DropdownOption[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const { favorites } = useFavorites();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onSearchRef = useRef(onSearch);
   const debounceDelay = 500; // 0.5 second
+
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  });
+
+  useEffect(() => {
+    const firstFavorite = favorites[0];
+    const fallback = firstFavorite
+      ? `${firstFavorite.coordinates.lat},${firstFavorite.coordinates.lon}`
+      : DEFAULT_COORDS;
+
+    if (!navigator.geolocation) {
+      onSearchRef.current(fallback);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        onSearchRef.current(`${coords.latitude},${coords.longitude}`);
+      },
+      () => {
+        onSearchRef.current(fallback);
+      },
+    );
+  }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
