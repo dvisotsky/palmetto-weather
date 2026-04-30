@@ -1,4 +1,4 @@
-import { CurrentWeather } from '@/types/weather.types';
+import { CurrentWeather } from "@/types/weather.types";
 
 interface Props {
   data: CurrentWeather | null;
@@ -21,7 +21,7 @@ export function WeatherDisplay({ data, isLoading, error }: Props) {
 
   return (
     <section aria-label="Current weather">
-      <h2>{data.location}</h2>
+      <h1 className="font-header font-bold text-3xl">{data.location}</h1>
       <p>
         {data.temperature.value}°{data.temperature.unit}
       </p>
@@ -31,7 +31,7 @@ export function WeatherDisplay({ data, isLoading, error }: Props) {
       <p>
         Wind: {data.windSpeed} {data.windUnit}
       </p>
-      <p>{data.summary}</p>
+      <p>{data.description}</p>
     </section>
   );
 }

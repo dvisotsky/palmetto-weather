@@ -21,6 +21,7 @@ const config: Config = {
       fontFamily: {
         sans:    ['DM Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['Pacifico', 'ui-serif', 'Georgia', 'serif'],
+        header:  ['Arial Black', 'Arial Bold', 'Gadget', 'sans-serif'],
       },
       borderRadius: {
         xl:  '1rem',
