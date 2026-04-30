@@ -11,7 +11,7 @@ export interface CurrentWeather {
   windSpeed: number;
   windUnit: string;
   feelsLike: number;
-  summary: string;
+  description: string;
 }
 
 export interface ForecastDay {
