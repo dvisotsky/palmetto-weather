@@ -3,6 +3,7 @@ import { GeoLocation, CurrentWeatherResponse, ForecastDay, ForecastResponse } fr
 import { throwUpstreamError } from '@/utils/errors';
 
 const GEO_API = 'https://api.openweathermap.org/geo/1.0/direct';
+const REVERSE_GEO_API = 'https://api.openweathermap.org/geo/1.0/reverse';
 const WEATHER_API = 'https://api.openweathermap.org/data/2.5/weather';
 const FORECAST_API = 'https://api.openweathermap.org/data/2.5/forecast';
 const API_KEY = process.env.OPENWEATHER_API_KEY ?? '';
@@ -29,6 +30,16 @@ export class WeatherService {
     }
   }
 
+  private async reverseGeocode(lat: number, lon: number): Promise<string> {
+    const url = `${REVERSE_GEO_API}?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Reverse geocoding API error: ${res.status}`);
+    const data = (await res.json()) as Record<string, unknown>[];
+    if (!data.length) return `${lat},${lon}`;
+    const item = data[0];
+    return item.state ? `${item.name as string}, ${item.state as string}` : (item.name as string);
+  }
+
   async getLocations(q: string): Promise<GeoLocation[]> {
     if (!q?.trim()) {
       throw new BadRequestException('q is required');
@@ -49,13 +60,12 @@ export class WeatherService {
     try {
       if (LAT_LON_RE.test(trimmedLocation)) {
         [lat, lon] = trimmedLocation.split(',').map(Number);
-        locationLabel = trimmedLocation;
+        locationLabel = await this.reverseGeocode(lat, lon);
       } else {
         const [geo] = await this.getGeoLocations(trimmedLocation, 1);
         if (!geo) throw new BadRequestException('Location not found');
         lat = geo.lat;
         lon = geo.lon;
-
         locationLabel = geo.state ? `${geo.name}, ${geo.state}` : geo.name;
       }
 
@@ -72,6 +82,7 @@ export class WeatherService {
 
       return {
         location: locationLabel,
+        coordinates: { lat, lon },
         temperature: { value: Math.round(data.main.temp), unit: 'F' },
         feelsLike: Math.round(data.main.feels_like),
         humidity: data.main.humidity,
@@ -99,7 +110,7 @@ export class WeatherService {
     try {
       if (LAT_LON_RE.test(trimmedLocation)) {
         [lat, lon] = trimmedLocation.split(',').map(Number);
-        locationLabel = trimmedLocation;
+        locationLabel = await this.reverseGeocode(lat, lon);
       } else {
         const [geo] = await this.getGeoLocations(trimmedLocation, 1);
         if (!geo) throw new BadRequestException('Location not found');
@@ -138,7 +149,7 @@ export class WeatherService {
           precipitationChance: Math.round(Math.max(...slots.map((s) => s.pop)) * 100),
         }));
 
-      return { location: locationLabel, forecast };
+      return { location: locationLabel, coordinates: { lat, lon }, forecast };
     } catch (err) {
       throwUpstreamError(err);
     }

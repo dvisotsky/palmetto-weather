@@ -11,8 +11,14 @@ export interface Temperature {
   unit: 'F' | 'C';
 }
 
+export interface Coordinates {
+  lat: number;
+  lon: number;
+}
+
 export interface CurrentWeather {
   location: string;
+  coordinates: Coordinates;
   temperature: Temperature;
   condition: string;
   humidity: number;
@@ -32,5 +38,6 @@ export interface ForecastDay {
 
 export interface Forecast {
   location: string;
+  coordinates: Coordinates;
   forecast: ForecastDay[];
 }
