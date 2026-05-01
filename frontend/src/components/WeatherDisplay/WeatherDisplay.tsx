@@ -77,7 +77,7 @@ export function WeatherDisplay({
 
   return (
     <>
-      <div className="pb-4 mt-4 border-b-4 border-primary flex justify-between items-end gap-4">
+      <div className="pb-4 mt-4 border-b-4 border-primary flex justify-between items-center gap-4">
         <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4">
           <h1 className="font-header font-bold text-4xl">
             {data?.city}
@@ -87,15 +87,17 @@ export function WeatherDisplay({
             <h1 className="font-header font-bold text-2xl italic">{region}</h1>
           )}
         </div>
-        <div className="relative flex items-center gap-1">
-          <span
-            className={`text-nowrap text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full transition-opacity ${copied ? "opacity-100 duration-150" : "opacity-0 duration-700"}`}
-          >
-            Link copied!
-          </span>
-          <Button variant="icon" onClick={copyToClipboard}>
-            <CopyIcon />
-          </Button>
+        <div className="flex flex-col sm:flex-row items-end">
+          <div className="relative flex items-center gap-1">
+            <span
+              className={`text-nowrap text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full transition-opacity ${copied ? "opacity-100 duration-150" : "opacity-0 duration-700"}`}
+            >
+              Link copied!
+            </span>
+            <Button variant="icon" onClick={copyToClipboard}>
+              <CopyIcon />
+            </Button>
+          </div>
           <Button
             variant="icon"
             onClick={() =>
