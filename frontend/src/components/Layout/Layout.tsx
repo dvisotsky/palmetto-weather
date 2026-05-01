@@ -20,7 +20,7 @@ export function Layout({ children }: Props) {
         {children}
       </main>
 
-      <footer className="bg-neutral-charcoal px-6 py-6">
+      <footer className="bg-neutral-charcoal px-6 py-6 max-h-[400px]">
         <div className="max-w-5xl mx-auto flex items-center justify-between text-sm text-neutral-mid">
           <span className="font-display text-white">Palmetto Weather</span>
           <span>© {new Date().getFullYear()} Palmetto</span>

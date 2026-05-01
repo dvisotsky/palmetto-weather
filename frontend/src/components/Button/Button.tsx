@@ -1,4 +1,5 @@
 import { ButtonHTMLAttributes } from "react";
+import { twMerge } from "tailwind-merge";
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "ghost" | "icon";
@@ -13,19 +14,24 @@ export function Button({
   ...props
 }: Props) {
   const base =
-    "inline-flex items-center justify-center rounded-xl p-4 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
+    "inline-flex items-center justify-center rounded-xl text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
 
   const variants = {
     primary:
-      "bg-primary text-white hover:bg-primary-hover focus-visible:ring-primary",
+      "bg-primary text-white hover:bg-primary-hover focus-visible:ring-primary p-4",
     ghost:
-      "bg-transparent text-neutral-charcoal underline underline-offset-2 hover:text-primary",
+      "bg-transparent text-neutral-charcoal underline underline-offset-2 hover:text-primary p-4",
     icon: "p-2 bg-transparent text-neutral-charcoal hover:text-primary",
   };
 
   return (
     <button
-      className={`${base} ${variants[variant]} ${fullWidth ? "w-full" : ""} ${className}`}
+      className={twMerge(
+        base,
+        variants[variant],
+        fullWidth ? "w-full" : "",
+        className,
+      )}
       {...props}
     >
       {children}

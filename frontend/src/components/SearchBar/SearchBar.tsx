@@ -82,7 +82,7 @@ export function SearchBar({ onSearch, isLoading = false }: Props) {
   }, [inputValue]);
 
   function handleSelect(option: DropdownOption) {
-    setInputValue(option.label);
+    setInputValue("");
     setOptions([]);
     setValidationError("");
     onSearch(option.value);
@@ -111,6 +111,7 @@ export function SearchBar({ onSearch, isLoading = false }: Props) {
           aria-label="Location"
           onChange={setInputValue}
           onSelect={handleSelect}
+          onClick={() => setInputValue("")}
         />
       </div>
       <Button type="submit" disabled={isLoading}>
