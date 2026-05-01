@@ -37,7 +37,7 @@ export function WeatherDisplay({
   function copyToClipboard() {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 1000);
   }
 
   const {
@@ -90,7 +90,7 @@ export function WeatherDisplay({
         <div className="flex flex-col sm:flex-row items-end">
           <div className="relative flex items-center gap-1">
             <span
-              className={`text-nowrap text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full transition-opacity ${copied ? "opacity-100 duration-150" : "opacity-0 duration-700"}`}
+              className={`absolute right-8 text-nowrap text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full shadow-md transition-opacity ${copied ? "opacity-95 duration-150" : "opacity-0 duration-700"}`}
             >
               Link copied!
             </span>
