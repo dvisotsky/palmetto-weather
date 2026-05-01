@@ -58,7 +58,7 @@ export function WeatherDisplay({
 
   return (
     <>
-      <div className="pb-4 mt-4 border-b-4 border-primary flex items-end gap-4">
+      <div className="pb-4 mt-4 border-b-4 border-primary flex justify-between items-end gap-4">
         <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4">
           <h1 className="font-header font-bold text-4xl">
             {data?.city}
@@ -152,8 +152,9 @@ export function WeatherDisplay({
                       </div>
                     </div>
                     <div className="p-2 flex flex-col gap-1">
-                      <span className="font-semibold">
-                        &uarr;{day.high}° &darr;{day.low}°
+                      <span>
+                        &uarr;<span className="font-semibold">{day.high}°</span>{" "}
+                        &darr;<span className="font-semibold">{day.low}° </span>
                       </span>
                       <span>{day.condition}</span>
                       <span className="text-sm">
