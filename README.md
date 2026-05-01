@@ -2,6 +2,8 @@
 
 A full-stack weather app: React frontend + NestJS backend. The backend normalizes data from the OpenWeatherMap API; the frontend lets users search by location and displays current conditions and a multi-day forecast.
 
+Live demo available at http://palmetto-weather-frontend-production.up.railway.app
+
 ```
 Browser
   └── React + Vite (localhost:5173)

@@ -54,7 +54,7 @@ export function WeatherDisplay({
     return <AlertCard variant="error" message={error} />;
   }
 
-  if (data && (currentWeatherLoading || forecastLoading)) {
+  if (currentWeatherLoading || forecastLoading) {
     return (
       <div className="flex flex-col items-center justify-center m-8">
         <Loading label="Loading weather data…" />
@@ -123,7 +123,6 @@ export function WeatherDisplay({
           <h2 className="font-header font-bold text-2xl mb-4">
             Current Weather
           </h2>
-          {currentWeatherLoading && <Loading label="Loading weather data…" />}
           {data && (
             <div className="text-xl">
               <div className="flex items-end gap-4">
@@ -152,7 +151,6 @@ export function WeatherDisplay({
         </section>
         <section aria-label="Forecast" className="sm:pl-4 flex-1 min-w-0">
           <h2 className="font-header font-bold text-2xl mb-4">Forecast</h2>
-          {forecastLoading && <Loading label="Loading forecast…" />}
           {forecast && (
             <ul
               ref={forecastRef}
