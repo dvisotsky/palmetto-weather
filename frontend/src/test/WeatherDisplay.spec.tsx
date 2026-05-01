@@ -35,7 +35,7 @@ describe("WeatherDisplay", () => {
       />,
     );
     expect(screen.getByText("Charleston")).toBeInTheDocument();
-    expect(screen.getByText("Partly Cloudy")).toBeInTheDocument();
+    expect(screen.getByText("Few Clouds")).toBeInTheDocument();
   });
 
   it("shows loading state", () => {
@@ -47,7 +47,7 @@ describe("WeatherDisplay", () => {
         {...defaultProps}
       />,
     );
-    expect(screen.getByRole("generic", { hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole("generic", { name: "Loading weather data…" })).toBeInTheDocument();
   });
 
   it("shows error message", () => {
