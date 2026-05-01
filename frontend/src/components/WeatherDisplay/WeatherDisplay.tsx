@@ -10,6 +10,8 @@ import { Loading } from "../Loading/Loading";
 import { StarIcon } from "../icons/StarIcon";
 import { startCase } from "lodash";
 import { useDragScroll } from "@/hooks/useDragScroll";
+import { CopyIcon } from "../icons/CopyIcon";
+import { useState } from "react";
 
 interface Props {
   data: CurrentWeather | null;
@@ -30,6 +32,14 @@ export function WeatherDisplay({
   isFavorite,
   toggleFavorite,
 }: Props) {
+  const [copied, setCopied] = useState(false);
+
+  function copyToClipboard() {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   const {
     ref: forecastRef,
     isScrollable,
@@ -44,8 +54,12 @@ export function WeatherDisplay({
     return <AlertCard variant="error" message={error} />;
   }
 
-  if (!data && (currentWeatherLoading || forecastLoading)) {
-    return <Loading label="Loading weather data…" />;
+  if (data && (currentWeatherLoading || forecastLoading)) {
+    return (
+      <div className="flex flex-col items-center justify-center m-8">
+        <Loading label="Loading weather data…" />
+      </div>
+    );
   }
 
   if (!data) {
@@ -73,7 +87,15 @@ export function WeatherDisplay({
             <h1 className="font-header font-bold text-2xl italic">{region}</h1>
           )}
         </div>
-        {data && (
+        <div className="relative flex items-center gap-1">
+          <span
+            className={`text-nowrap text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full transition-opacity ${copied ? "opacity-100 duration-150" : "opacity-0 duration-700"}`}
+          >
+            Link copied!
+          </span>
+          <Button variant="icon" onClick={copyToClipboard}>
+            <CopyIcon />
+          </Button>
           <Button
             variant="icon"
             onClick={() =>
@@ -88,7 +110,7 @@ export function WeatherDisplay({
               fill={isFavorite(data.coordinates) ? "currentColor" : "none"}
             />
           </Button>
-        )}
+        </div>
       </div>
 
       <div className="flex sm:flex-row flex-col mt-8 sm:divide-x-4 divide-primary-light">
