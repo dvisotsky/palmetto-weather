@@ -1,5 +1,4 @@
 import { FavoriteLocation } from "@/types/weather.types";
-import { StarIcon } from "../icons/StarIcon";
 
 interface Props {
   favorites: FavoriteLocation[];
@@ -11,7 +10,6 @@ export function FavoriteLocations({ favorites, onSelect }: Props) {
 
   return (
     <div className="flex flex-wrap gap-2 mt-3 items-center text-primary">
-      {/* <StarIcon fill="currentColor" /> */}
       {favorites.map((fav) => (
         <button
           key={`${fav.coordinates.lat},${fav.coordinates.lon}`}

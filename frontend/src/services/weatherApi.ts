@@ -1,6 +1,6 @@
 import { CurrentWeather, Forecast, Location } from '@/types/weather.types';
 
-const BASE_URL = '/weather';
+const BASE_URL = `${import.meta.env.VITE_API_URL ?? ''}/weather`;
 
 export async function fetchCurrentWeather(location: string): Promise<CurrentWeather> {
   const res = await fetch(`${BASE_URL}/current?location=${encodeURIComponent(location)}`);

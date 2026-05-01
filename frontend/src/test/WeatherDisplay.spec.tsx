@@ -6,6 +6,7 @@ import { CurrentWeather } from "@/types/weather.types";
 const mockWeather: CurrentWeather = {
   city: "Charleston",
   state: "South Carolina",
+  country: "US",
   coordinates: { lat: 32.7765, lon: -79.9311 },
   temperature: { value: 72, unit: "F" },
   condition: "Partly Cloudy",
