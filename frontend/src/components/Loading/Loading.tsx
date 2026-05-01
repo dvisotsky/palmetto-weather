@@ -6,7 +6,11 @@ interface Props {
 
 export function Loading({ label = "Loading…" }: Props) {
   return (
-    <div className="flex items-center gap-2" aria-busy="true" aria-label={label}>
+    <div
+      className="font-header italic flex items-center gap-2"
+      aria-busy="true"
+      aria-label={label}
+    >
       <SpinnerIcon />
       <span>{label}</span>
     </div>
