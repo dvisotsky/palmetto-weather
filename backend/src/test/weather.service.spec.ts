@@ -1,14 +1,37 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { WeatherService } from '@/weather/weather.service';
-import { BadRequestException, BadGatewayException } from '@nestjs/common';
+import { WeatherService, makeCacheKey } from '@/weather/weather.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { BadRequestException, BadGatewayException, Logger } from '@nestjs/common';
+
+describe('makeCacheKey', () => {
+  it('prefixes with type and rounds coords to 2 decimal places', () => {
+    expect(makeCacheKey('current', 32.7765, -79.9311)).toBe('current:32.78,-79.93');
+    expect(makeCacheKey('forecast', 32.7765, -79.9311)).toBe('forecast:32.78,-79.93');
+  });
+
+  it('produces the same key for coordinates that round identically', () => {
+    expect(makeCacheKey('current', 32.779, -79.934)).toBe(makeCacheKey('current', 32.7765, -79.9311));
+  });
+
+  it('handles negative coordinates', () => {
+    expect(makeCacheKey('current', -33.87, 151.21)).toBe('current:-33.87,151.21');
+  });
+});
 
 describe('WeatherService', () => {
   let service: WeatherService;
 
   beforeEach(async () => {
+    const mockCache = {
+      get: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
     const module = await Test.createTestingModule({
-      providers: [WeatherService],
+      providers: [
+        WeatherService,
+        { provide: CACHE_MANAGER, useValue: mockCache },
+      ],
     }).compile();
 
     service = module.get(WeatherService);
@@ -84,6 +107,17 @@ describe('WeatherService', () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network timeout')));
 
       await expect(service.getLocations('Charleston')).rejects.toThrow(BadGatewayException);
+    });
+
+    it('logs and throws BadGatewayException when geo API returns malformed payload', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([{ name: 'Charleston' }]), // missing country, lat, lon
+      }));
+      const logSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+
+      await expect(service.getLocations('Charleston')).rejects.toThrow(BadGatewayException);
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Malformed geo payload'));
     });
   });
 
@@ -182,6 +216,28 @@ describe('WeatherService', () => {
 
       await expect(service.getCurrent('Charleston')).rejects.toThrow(BadGatewayException);
     });
+
+    it('logs and throws BadGatewayException when geo API returns malformed payload', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([{ name: 'Charleston' }]), // missing country, lat, lon
+      }));
+      const logSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+
+      await expect(service.getCurrent('Charleston')).rejects.toThrow(BadGatewayException);
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Malformed geo payload'));
+    });
+
+    it('logs and throws BadGatewayException when weather API returns malformed payload', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockGeoResponse) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ main: { temp: 72 } }) }); // missing wind, weather
+      vi.stubGlobal('fetch', fetchMock);
+      const logSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+
+      await expect(service.getCurrent('Charleston')).rejects.toThrow(BadGatewayException);
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Malformed weather payload'));
+    });
   });
 
   describe('getForecast', () => {
@@ -278,6 +334,28 @@ describe('WeatherService', () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network timeout')));
 
       await expect(service.getForecast('Charleston')).rejects.toThrow(BadGatewayException);
+    });
+
+    it('logs and throws BadGatewayException when geo API returns malformed payload', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([{ name: 'Charleston' }]), // missing country, lat, lon
+      }));
+      const logSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+
+      await expect(service.getForecast('Charleston')).rejects.toThrow(BadGatewayException);
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Malformed geo payload'));
+    });
+
+    it('logs and throws BadGatewayException when forecast API returns malformed payload', async () => {
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockGeoResponse) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ list: [{ dt_txt: '2026-05-01 12:00:00' }] }) }); // slots missing main, weather, pop
+      vi.stubGlobal('fetch', fetchMock);
+      const logSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+
+      await expect(service.getForecast('Charleston')).rejects.toThrow(BadGatewayException);
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Malformed forecast payload'));
     });
   });
 });

@@ -1,4 +1,6 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadGatewayException, BadRequestException, Inject, Injectable, Logger } from "@nestjs/common";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Cache } from "cache-manager";
 import {
   GeoLocation,
   CurrentWeatherResponse,
@@ -6,6 +8,57 @@ import {
   ForecastResponse,
 } from "@/types/weather.types";
 import { throwUpstreamError } from "@/utils/errors";
+
+export function makeCacheKey(type: "current" | "forecast", lat: number, lon: number): string {
+  return `${type}:${lat.toFixed(2)},${lon.toFixed(2)}`;
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function isGeoItems(data: unknown): data is any[] {
+  return (
+    Array.isArray(data) &&
+    (data as any[]).every(
+      (item: any) =>
+        typeof item?.name === "string" &&
+        typeof item?.country === "string" &&
+        typeof item?.lat === "number" &&
+        typeof item?.lon === "number",
+    )
+  );
+}
+
+function isWeatherPayload(data: unknown): data is any {
+  const d = data as any;
+  return (
+    typeof d?.main?.temp === "number" &&
+    typeof d?.main?.feels_like === "number" &&
+    typeof d?.main?.humidity === "number" &&
+    typeof d?.wind?.speed === "number" &&
+    Array.isArray(d?.weather) &&
+    d.weather.length > 0 &&
+    typeof d.weather[0]?.main === "string" &&
+    typeof d.weather[0]?.description === "string"
+  );
+}
+
+function isForecastPayload(data: unknown): data is any {
+  const d = data as any;
+  return (
+    Array.isArray(d?.list) &&
+    d.list.length > 0 &&
+    d.list.every(
+      (slot: any) =>
+        typeof slot?.dt_txt === "string" &&
+        typeof slot?.main?.temp_max === "number" &&
+        typeof slot?.main?.temp_min === "number" &&
+        Array.isArray(slot?.weather) &&
+        slot.weather.length > 0 &&
+        typeof slot.weather[0]?.main === "string" &&
+        typeof slot?.pop === "number",
+    )
+  );
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const GEO_API = "https://api.openweathermap.org/geo/1.0/direct";
 const REVERSE_GEO_API = "https://api.openweathermap.org/geo/1.0/reverse";
@@ -15,8 +68,23 @@ const API_KEY = process.env.OPENWEATHER_API_KEY ?? "";
 
 const LAT_LON_RE = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
 
+// TTLs in milliseconds (cache-manager v5)
+const CURRENT_TTL_MS = 5 * 60 * 1000;
+const FORECAST_TTL_MS = 30 * 60 * 1000;
+
 @Injectable()
 export class WeatherService {
+  private readonly logger = new Logger(WeatherService.name);
+
+  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+
+  private malformedPayload(context: string, data: unknown): never {
+    this.logger.error(
+      `Malformed ${context} payload: ${JSON.stringify(data)}`,
+    );
+    throw new BadGatewayException("Malformed response from weather service");
+  }
+
   private async getGeoLocations(
     q: string,
     limit: number,
@@ -25,7 +93,8 @@ export class WeatherService {
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Geocoding API error: ${res.status}`);
-      const data = (await res.json()) as Record<string, unknown>[];
+      const data: unknown = await res.json();
+      if (!isGeoItems(data)) this.malformedPayload("geo", data);
       return data.map((item) => ({
         name: item.name as string,
         ...(item.state ? { state: item.state as string } : {}),
@@ -47,7 +116,8 @@ export class WeatherService {
       const res = await fetch(url);
       if (!res.ok)
         throw new Error(`Reverse geocoding API error: ${res.status}`);
-      const data = (await res.json()) as Record<string, unknown>[];
+      const data: unknown = await res.json();
+      if (!isGeoItems(data)) this.malformedPayload("reverse-geo", data);
       if (!data.length) return null;
       const item = data[0];
       return {
@@ -98,19 +168,19 @@ export class WeatherService {
         country = geo.country;
       }
 
+      const cacheKey = makeCacheKey("current", lat, lon);
+      const cached = await this.cache.get<CurrentWeatherResponse>(cacheKey);
+      if (cached) return cached;
+
       const weatherUrl = `${WEATHER_API}?lat=${lat}&lon=${lon}&units=imperial&appid=${API_KEY}`;
       const weatherRes = await fetch(weatherUrl);
       if (!weatherRes.ok)
         throw new Error(`Weather API error: ${weatherRes.status}`);
 
-      const data = (await weatherRes.json()) as {
-        main: { temp: number; feels_like: number; humidity: number };
-        wind: { speed: number };
-        weather: { main: string; description: string }[];
-      };
-      const weather = data.weather[0];
+      const data: unknown = await weatherRes.json();
+      if (!isWeatherPayload(data)) this.malformedPayload("weather", data);
 
-      return {
+      const result: CurrentWeatherResponse = {
         city,
         state,
         country,
@@ -120,9 +190,12 @@ export class WeatherService {
         humidity: data.main.humidity,
         windSpeed: Math.round(data.wind.speed),
         windUnit: "mph",
-        condition: weather.main,
-        description: weather.description,
+        condition: data.weather[0].main,
+        description: data.weather[0].description,
       };
+
+      await this.cache.set(cacheKey, result, CURRENT_TTL_MS);
+      return result;
     } catch (err) {
       throwUpstreamError(err);
     }
@@ -161,18 +234,16 @@ export class WeatherService {
         country = geo.country;
       }
 
+      const cacheKey = makeCacheKey("forecast", lat, lon);
+      const cached = await this.cache.get<ForecastResponse>(cacheKey);
+      if (cached) return cached;
+
       const url = `${FORECAST_API}?lat=${lat}&lon=${lon}&units=imperial&appid=${API_KEY}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Forecast API error: ${res.status}`);
 
-      const data = (await res.json()) as {
-        list: {
-          dt_txt: string;
-          main: { temp_max: number; temp_min: number };
-          weather: { main: string }[];
-          pop: number;
-        }[];
-      };
+      const data: unknown = await res.json();
+      if (!isForecastPayload(data)) this.malformedPayload("forecast", data);
 
       const byDate = new Map<string, typeof data.list>();
       for (const slot of data.list) {
@@ -185,17 +256,19 @@ export class WeatherService {
         .slice(0, clampedDays)
         .map(([date, slots]) => ({
           date,
-          high: Math.round(Math.max(...slots.map((s) => s.main.temp_max))),
-          low: Math.round(Math.min(...slots.map((s) => s.main.temp_min))),
+          high: Math.round(Math.max(...slots.map((s: any) => s.main.temp_max))),
+          low: Math.round(Math.min(...slots.map((s: any) => s.main.temp_min))),
           condition: (
-            slots.find((s) => s.dt_txt.includes("12:00:00")) ?? slots[0]
+            slots.find((s: any) => s.dt_txt.includes("12:00:00")) ?? slots[0]
           ).weather[0].main,
           precipitationChance: Math.round(
-            Math.max(...slots.map((s) => s.pop)) * 100,
+            Math.max(...slots.map((s: any) => s.pop)) * 100,
           ),
         }));
 
-      return { city, state, country, coordinates: { lat, lon }, forecast };
+      const result: ForecastResponse = { city, state, country, coordinates: { lat, lon }, forecast };
+      await this.cache.set(cacheKey, result, FORECAST_TTL_MS);
+      return result;
     } catch (err) {
       throwUpstreamError(err);
     }
