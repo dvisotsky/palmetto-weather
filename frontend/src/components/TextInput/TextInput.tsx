@@ -38,7 +38,7 @@ export function TextInput({
           <span className="text-neutral-mid text-sm select-none">{suffix}</span>
         )}
       </div>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
     </div>
   );
 }

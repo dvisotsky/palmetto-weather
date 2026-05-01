@@ -4,6 +4,7 @@ import {
   FavoriteLocation,
   Forecast,
 } from "@/types/weather.types";
+import { AlertCard } from "../AlertCard/AlertCard";
 import { Button } from "../Button/Button";
 import { Loading } from "../Loading/Loading";
 import { StarIcon } from "../icons/StarIcon";
@@ -40,7 +41,11 @@ export function WeatherDisplay({
   } = useDragScroll<HTMLUListElement>();
 
   if (error) {
-    return <p role="alert">{error}</p>;
+    return <AlertCard variant="error" message={error} />;
+  }
+
+  if (!data && (currentWeatherLoading || forecastLoading)) {
+    return <Loading label="Loading weather data…" />;
   }
 
   if (!data) {
